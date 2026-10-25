@@ -71,11 +71,25 @@
             0%, 100% { box-shadow: 0 0 15px rgba(0, 245, 212, 0.2); }
             50% { box-shadow: 0 0 30px rgba(0, 245, 212, 0.45); }
         }
+
+        /* Premium digital trip meter */
+        .trip-meter-card { position:relative; overflow:hidden; background:linear-gradient(145deg,#071525 0%,#06101e 48%,#0b2230 100%); border:1px solid rgba(34,211,238,.32); box-shadow:0 18px 45px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.06); }
+        .trip-meter-card::before { content:""; position:absolute; inset:-40% -20%; background:radial-gradient(ellipse at 50% 45%,rgba(6,182,212,.17),transparent 58%); pointer-events:none; }
+        .trip-meter-card::after { content:""; position:absolute; left:0; right:0; top:0; height:2px; background:linear-gradient(90deg,transparent,#22d3ee,#34d399,transparent); opacity:.9; }
+        .trip-meter-screen { position:relative; overflow:hidden; border:1px solid rgba(45,212,191,.26); border-radius:24px; padding:20px 12px 17px; background:linear-gradient(180deg,rgba(1,8,17,.96),rgba(5,25,35,.92)); box-shadow:inset 0 0 35px rgba(6,182,212,.09),0 0 24px rgba(6,182,212,.06); }
+        .trip-meter-screen::before { content:""; position:absolute; inset:0; opacity:.14; pointer-events:none; background:repeating-linear-gradient(0deg,transparent 0px,transparent 4px,rgba(34,211,238,.22) 5px); }
+        .trip-meter-value { position:relative; display:block; font-family:'Courier New',monospace; font-size:clamp(2.5rem,11vw,4.15rem); line-height:1.05; font-weight:900; letter-spacing:.035em; color:#a7f3d0; text-shadow:0 0 8px rgba(52,211,153,.55),0 0 24px rgba(34,211,238,.25); font-variant-numeric:tabular-nums; white-space:nowrap; }
+        .trip-meter-unit { position:relative; color:#67e8f9; font-size:.7rem; font-weight:900; letter-spacing:.28em; text-transform:uppercase; }
+        .trip-meter-chip { display:inline-flex; align-items:center; gap:7px; border:1px solid rgba(34,211,238,.25); border-radius:999px; padding:6px 11px; background:rgba(8,145,178,.10); color:#a5f3fc; font-size:10px; font-weight:900; letter-spacing:.08em; }
+        .trip-meter-dot { width:7px;height:7px;border-radius:50%;background:#34d399;box-shadow:0 0 10px #34d399; }
+        .light .trip-meter-card { background:linear-gradient(145deg,#f0fdff,#e6fffb 70%,#f8fafc); border-color:rgba(8,145,178,.28); }
+        .light .trip-meter-screen { background:linear-gradient(180deg,#f8ffff,#e9fffb); }
+        .light .trip-meter-value { color:#047857; text-shadow:0 0 1px rgba(4,120,87,.25); }
+        .light .trip-meter-unit { color:#0e7490; }
+        .light .trip-meter-chip { color:#0e7490; background:rgba(8,145,178,.07); }
+        @media (prefers-reduced-motion:no-preference) { .trip-meter-dot { animation:meterDot 1.8s infinite; } }
+        @keyframes meterDot { 0%,100%{opacity:1} 50%{opacity:.35} }
     </style>
-    <link rel="manifest" href="manifest.webmanifest">
-    <meta name="theme-color" content="#00BB9E">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
 <body class="tech-bg text-slate-100 light:text-slate-900 min-h-screen selection:bg-brand-500 selection:text-slate-950 transition-colors duration-500">
 
@@ -296,31 +310,44 @@
                 </div>
             </div>
 
-            <!-- LIVE GPS TRIP CONTROLS -->
-            <div class="app-glass rounded-3xl p-6 shadow-2xl space-y-4 text-center border border-slate-800 light:border-slate-200">
-                <div class="w-14 h-14 bg-cyan-500/10 text-cyan-400 rounded-2xl flex items-center justify-center mx-auto text-2xl border border-cyan-500/20">
-                    <i class="fa-solid fa-satellite-dish animate-spin" style="animation-duration: 6s;"></i>
-                </div>
-                <div>
-                    <h3 class="text-lg font-black text-cyan-400">සජීවී ජීපීඑස් මීටරය</h3>
-                    <p class="text-[11px] text-slate-400 font-bold mt-0.5">ගමන අරඹන විට Start Trip ඔබන්න</p>
+            <!-- PREMIUM DIGITAL GPS TRIP METER -->
+            <div class="trip-meter-card rounded-[2rem] p-5 sm:p-6 shadow-2xl space-y-5 text-center">
+                <div class="relative flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-3 text-left">
+                        <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-cyan-300 text-xl border border-cyan-300/20 bg-cyan-400/10 shadow-lg shadow-cyan-950/30">
+                            <i class="fa-solid fa-gauge-high"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-base sm:text-lg font-black text-cyan-300 light:text-cyan-800">සජීවී ඩිජිටල් මීටරය</h3>
+                            <p class="text-[10px] sm:text-[11px] text-slate-400 light:text-slate-600 font-bold mt-1">GPS TRIP DISTANCE</p>
+                        </div>
+                    </div>
+                    <span class="trip-meter-chip"><span class="trip-meter-dot"></span> LIVE</span>
                 </div>
 
-                <div class="bg-slate-950/50 light:bg-slate-100 p-4 rounded-2xl border border-slate-800 light:border-slate-200">
-                    <span class="text-[10px] font-black text-slate-400 block mb-1 uppercase tracking-widest">ගමන් කළ දුර (Live KM)</span>
-                    <span id="live-km-val" class="text-3xl font-black text-white light:text-slate-900 tracking-tight">0.00 KM</span>
-                    <div id="trip-status-text" class="text-xs font-black text-brand-500 mt-2">සූදානම් තත්වයේ ඇත</div>
+                <div class="trip-meter-screen">
+                    <div class="relative flex justify-center items-center gap-2 mb-3 text-cyan-200/70">
+                        <i class="fa-solid fa-location-crosshairs text-xs"></i>
+                        <span class="text-[9px] font-black tracking-[.24em] uppercase">Distance travelled</span>
+                    </div>
+                    <span id="live-km-val" class="trip-meter-value">0.00 KM</span>
+                    <div class="relative mt-3 flex justify-center"><span class="trip-meter-unit">KILOMETERS</span></div>
+                    <div class="relative mt-5 h-px bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent"></div>
+                    <div class="relative flex items-center justify-center gap-2 mt-3 text-[10px] font-bold text-slate-400 light:text-slate-600">
+                        <i class="fa-solid fa-satellite-dish text-cyan-400"></i>
+                        <span id="trip-status-text" class="text-emerald-300 light:text-emerald-700">සූදානම් තත්වයේ ඇත</span>
+                    </div>
                 </div>
 
-                <button id="start-trip-btn" onclick="startLiveTrip()" class="w-full bg-gradient-to-r from-emerald-500 to-brand-500 text-slate-950 font-black py-4 rounded-2xl text-base shadow-lg flex items-center justify-center space-x-2">
-                    <i class="fa-solid fa-play"></i>
-                    <span>ගමන ආරම්භ කරන්න (Start Trip)</span>
-                </button>
-
-                <button id="end-trip-btn" onclick="endLiveTrip()" class="hidden w-full bg-gradient-to-r from-red-500 to-rose-600 text-white font-black py-4 rounded-2xl text-base shadow-lg animate-pulse flex items-center justify-center space-x-2">
-                    <i class="fa-solid fa-stop"></i>
-                    <span>ගමන අවසන් කරන්න (End Trip)</span>
-                </button>
+                <div class="relative grid grid-cols-2 gap-3">
+                    <button id="start-trip-btn" onclick="startLiveTrip()" class="w-full bg-gradient-to-r from-emerald-400 to-teal-300 text-slate-950 font-black py-4 px-2 rounded-2xl text-sm shadow-lg shadow-emerald-950/30 transition active:scale-[.98] flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-play"></i><span>ගමන අරඹන්න</span>
+                    </button>
+                    <button id="end-trip-btn" onclick="endLiveTrip()" class="hidden w-full bg-gradient-to-r from-red-500 to-rose-600 text-white font-black py-4 px-2 rounded-2xl text-sm shadow-lg transition active:scale-[.98] flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-stop"></i><span>ගමන නවත්වන්න</span>
+                    </button>
+                    <div class="col-span-2 text-[9px] font-bold text-slate-500 light:text-slate-600">ගමන ආරම්භ කිරීමට පෙර GPS Location ON කරන්න</div>
+                </div>
             </div>
 
         </div>
@@ -1099,15 +1126,6 @@
                 `).join('');
             }
         }
-    </script>
-
-    <script>
-    // Enable offline caching when hosted on HTTPS (or localhost).
-    if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').catch(err => console.warn('Offline setup could not start:', err));
-      });
-    }
     </script>
 </body>
 </html>

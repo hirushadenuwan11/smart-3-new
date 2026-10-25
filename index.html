@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="si" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMART MEETER - Three Wheeler Pro Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: { 
+                        brand: { 500: '#00F5D4', 600: '#00BB9E' },
+                        accent: { 500: '#7209B7', 400: '#B5179E' }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;600;700;900&display=swap');
+        body { font-family: 'Noto Sans Sinhala', sans-serif; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .animate-fade { animation: fadeIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        
+        .app-glass {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        .light .app-glass {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+        }
+
+        .tech-bg {
+            background: linear-gradient(135deg, rgba(2, 6, 23, 0.92), rgba(15, 23, 42, 0.95)), 
+                        url('https://images.unsplash.com/photo-1558981403-c5f9899a28bc?q=80&w=1920&auto=format&fit=crop') center/cover no-repeat;
+            position: relative;
+        }
+        .tech-bg::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle, rgba(0, 245, 212, 0.08) 0%, transparent 70%);
+            pointer-events: none;
+            animation: bgPulse 6s infinite alternate;
+        }
+        @keyframes bgPulse {
+            0% { opacity: 0.4; }
+            100% { opacity: 0.9; }
+        }
+
+        .digital-gauge {
+            background: radial-gradient(circle, rgba(0, 245, 212, 0.08) 0%, rgba(15, 23, 42, 0.95) 75%);
+            box-shadow: inset 0 0 25px rgba(0, 245, 212, 0.15), 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+        .light .digital-gauge {
+            background: radial-gradient(circle, rgba(0, 187, 158, 0.08) 0%, rgba(255, 255, 255, 0.95) 75%);
+            box-shadow: inset 0 0 20px rgba(0, 187, 158, 0.1), 0 10px 25px rgba(0, 0, 0, 0.05);
+        }
+        .pulse-glow { animation: glowPulse 2.5s infinite; }
+        @keyframes glowPulse {
+            0%, 100% { box-shadow: 0 0 15px rgba(0, 245, 212, 0.2); }
+            50% { box-shadow: 0 0 30px rgba(0, 245, 212, 0.45); }
+        }
+    </style>
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#00BB9E">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+</head>
+<body class="tech-bg text-slate-100 light:text-slate-900 min-h-screen selection:bg-brand-500 selection:text-slate-950 transition-colors duration-500">
+
+    <!-- GENERAL WARNING POPUP MODAL -->
+    <div id="warning-modal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="app-glass border-2 border-amber-500 rounded-3xl p-6 max-w-sm w-full text-center space-y-4 shadow-2xl animate-bounce">
+            <div class="w-16 h-16 bg-amber-500/20 text-amber-500 rounded-2xl flex items-center justify-center mx-auto text-3xl shadow-inner">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h3 class="text-xl font-black text-amber-400 tracking-wide">ලේඛන කල් ඉකුත් වෙමින් පවතී!</h3>
+            <p id="warning-modal-msg" class="text-xs text-slate-300 light:text-slate-600 font-bold leading-relaxed"></p>
+            <button onclick="closeWarningModal()" class="w-full bg-gradient-to-r from-amber-500 to-orange-600 text-slate-950 font-black py-3.5 rounded-2xl text-sm transition transform active:scale-95 shadow-lg">
+                තේරුණා (OK)
+            </button>
+        </div>
+    </div>
+
+    <!-- LOW FUEL POPUP MODAL -->
+    <div id="low-fuel-modal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="app-glass border-2 border-red-500 rounded-3xl p-6 max-w-sm w-full text-center space-y-4 shadow-2xl animate-bounce">
+            <div class="w-16 h-16 bg-red-500/20 text-red-500 rounded-2xl flex items-center justify-center mx-auto text-3xl shadow-inner">
+                <i class="fa-solid fa-gas-pump"></i>
+            </div>
+            <h3 class="text-xl font-black text-red-500 tracking-wide">අවවාදයයි! තෙල් අවසන් වෙමින් පවතී!</h3>
+            <p id="low-fuel-msg" class="text-xs text-slate-300 light:text-slate-600 font-bold leading-relaxed">ටැංකියේ ඉතිරිව ඇත්තේ ලීටර් 1 කටත් වඩා අඩු ප්‍රමාණයකි!</p>
+            <button onclick="closeLowFuelModal()" class="w-full bg-gradient-to-r from-red-500 to-rose-600 text-white font-black py-3.5 rounded-2xl text-sm transition transform active:scale-95 shadow-lg">
+                තේරුණා (OK)
+            </button>
+        </div>
+    </div>
+
+    <!-- HEADER -->
+    <header class="app-glass border-b border-slate-800 light:border-slate-200 px-4 py-3.5 flex justify-between items-center sticky top-0 z-40 shadow-xl">
+        <div class="flex items-center space-x-3">
+            <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-brand-500 to-emerald-400 flex items-center justify-center text-slate-950 text-xl font-black shadow-lg shadow-brand-500/20 transform hover:rotate-6 transition">
+                <i class="fa-solid fa-gauge-high"></i>
+            </div>
+            <div>
+                <h1 class="text-base font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-brand-500 to-cyan-400">SMART MEETER</h1>
+                <span id="sync-status" class="text-[9px] text-emerald-400 font-black uppercase tracking-widest">● Online & Synced</span>
+            </div>
+        </div>
+        <div class="flex items-center space-x-2">
+            <button onclick="toggleTheme()" class="w-10 h-10 rounded-2xl bg-slate-900 light:bg-slate-200 text-amber-400 flex items-center justify-center transition shadow-md">
+                <i id="theme-icon" class="fa-solid fa-sun text-sm"></i>
+            </button>
+            <button onclick="logout()" class="w-10 h-10 rounded-2xl bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition shadow-md" title="මාරු වීම හෝ අයින් වීම">
+                <i class="fa-solid fa-power-off text-sm"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- AUTH SECTION WITH SAVED VEHICLES QUICK SWITCHER -->
+    <section id="auth-section" class="max-w-md mx-auto mt-8 p-6 app-glass rounded-3xl shadow-2xl border border-brand-500/30 mx-4 animate-fade relative overflow-hidden">
+        <div class="absolute -right-12 -top-12 w-32 h-32 bg-brand-500/10 rounded-full blur-2xl pointer-events-none"></div>
+        
+        <div class="text-center mb-6 space-y-2 relative z-10">
+            <div class="w-16 h-16 bg-gradient-to-tr from-brand-500/20 to-accent-500/20 text-brand-500 rounded-3xl flex items-center justify-center mx-auto text-2xl shadow-inner border border-brand-500/30 pulse-glow">
+                <i class="fa-solid fa-taxi"></i>
+            </div>
+            <h2 id="auth-title" class="text-2xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-brand-500 to-cyan-400">වාහන ලොගින් වීම</h2>
+            <p id="auth-desc" class="text-xs text-slate-400 font-bold">වාහන අංකය සහ මුරපදය ඇතුළත් කරන්න</p>
+        </div>
+
+        <!-- QUICK SWITCHER FOR SAVED VEHICLES -->
+        <div id="saved-vehicles-container" class="mb-5 hidden space-y-2 relative z-10">
+            <label class="block text-[10px] uppercase font-black tracking-wider text-brand-400">සංරක්ෂිත වාහන (Saved Vehicles - එක් ක්ලික් එකකින් ලොග් වන්න)</label>
+            <div id="saved-vehicles-list" class="grid grid-cols-2 gap-2"></div>
+            <div class="border-b border-slate-700/60 my-3"></div>
+        </div>
+
+        <div class="space-y-4 relative z-10">
+            <div>
+                <label class="block text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1.5">වාහන අංකය (Vehicle No)</label>
+                <input type="text" id="auth-vehicle" placeholder="WP-ABC-1234" class="w-full bg-slate-900/60 light:bg-slate-100 border border-slate-700 light:border-slate-300 rounded-2xl py-3.5 px-4 text-sm font-black uppercase focus:outline-none focus:border-brand-500 transition">
+            </div>
+            <div>
+                <label class="block text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1.5">මුරපදය</label>
+                <input type="password" id="auth-pass" placeholder="••••••••" class="w-full bg-slate-900/60 light:bg-slate-100 border border-slate-700 light:border-slate-300 rounded-2xl py-3.5 px-4 text-sm font-black focus:outline-none focus:border-brand-500 transition">
+            </div>
+            <button type="button" onclick="handleAuth()" id="auth-btn" class="w-full bg-gradient-to-r from-brand-500 to-emerald-400 hover:from-brand-600 hover:to-emerald-500 text-slate-950 font-black py-4 rounded-2xl text-sm shadow-lg shadow-brand-500/20 transition transform active:scale-98 flex items-center justify-center space-x-2">
+                <span id="auth-btn-text">ලොග් වන්න</span>
+                <i id="auth-spinner" class="hidden fa-solid fa-circle-notch fa-spin text-base"></i>
+            </button>
+            <div class="text-center pt-2">
+                <button type="button" onclick="toggleMode()" id="toggle-btn" class="text-xs font-bold text-brand-500 hover:underline transition">
+                    ගිණුමක් නැද්ද? ලියාපදිංචි වන්න
+                </button>
+            </div>
+            <div id="auth-msg" class="text-xs text-center font-black text-red-400"></div>
+        </div>
+    </section>
+
+    <!-- MAIN DASHBOARD -->
+    <main id="dashboard-section" class="hidden max-w-xl mx-auto p-4 space-y-5 pb-24 animate-fade">
+        
+        <!-- MENU NAVIGATION BAR -->
+        <div class="grid grid-cols-4 gap-1.5 app-glass p-1.5 rounded-2xl shadow-xl border border-slate-800 light:border-slate-200">
+            <button onclick="switchTab('home')" id="menu-home" class="py-2.5 rounded-xl text-xs font-black bg-brand-500 text-slate-950 transition-all flex flex-col items-center justify-center space-y-1 shadow-lg scale-105">
+                <i class="fa-solid fa-gauge text-sm"></i>
+                <span>මීටරය</span>
+            </button>
+            <button onclick="switchTab('refuel')" id="menu-refuel" class="py-2.5 rounded-xl text-xs font-black text-slate-400 hover:text-slate-100 transition-all flex flex-col items-center justify-center space-y-1">
+                <i class="fa-solid fa-gas-pump text-sm"></i>
+                <span>තෙල්</span>
+            </button>
+            <button onclick="switchTab('documents')" id="menu-documents" class="py-2.5 rounded-xl text-xs font-black text-slate-400 hover:text-slate-100 transition-all flex flex-col items-center justify-center space-y-1">
+                <i class="fa-solid fa-file-shield text-sm"></i>
+                <span>ලේඛන (Docs)</span>
+            </button>
+            <button onclick="switchTab('history')" id="menu-history" class="py-2.5 rounded-xl text-xs font-black text-slate-400 hover:text-slate-100 transition-all flex flex-col items-center justify-center space-y-1">
+                <i class="fa-solid fa-clock-rotate-left text-sm"></i>
+                <span>ඉතිහාසය</span>
+            </button>
+        </div>
+
+        <!-- TAB 1: HOME PAGE -->
+        <div id="tab-home" class="tab-content space-y-4">
+            
+            <!-- DIGITAL SPEEDOMETER GAUGE DISPLAY -->
+            <div class="app-glass rounded-3xl p-6 shadow-2xl space-y-5 border border-slate-800 light:border-slate-200 pulse-glow">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-xs font-black uppercase tracking-wider text-brand-500 flex items-center space-x-2">
+                        <i class="fa-solid fa-gauge-high"></i>
+                        <span>ඩිජිටල් ඉන්ධන මීටරය</span>
+                    </h3>
+                    <span id="display-vehicle" class="text-[11px] font-black px-3 py-1 rounded-xl bg-slate-900 light:bg-slate-200 text-brand-400 shadow-inner"></span>
+                </div>
+
+                <div class="digital-gauge rounded-3xl p-6 text-center space-y-3 border border-brand-500/30 shadow-inner relative overflow-hidden">
+                    <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">ඉතිරිව ඇති තෙල් ප්‍රමාණය</span>
+                    <div class="flex items-center justify-center space-x-2">
+                        <span id="stat-fuel" class="text-5xl font-black text-brand-500 tracking-tight">0.0</span>
+                        <span class="text-xl font-bold text-brand-400 mt-3">L</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 pt-3 border-t border-slate-800/60 light:border-slate-200">
+                        <div>
+                            <span class="text-[9px] font-black uppercase text-slate-400 block mb-0.5">යන්න පුළුවන් දුර</span>
+                            <span id="stat-range" class="text-xl font-black text-cyan-400">0 KM</span>
+                        </div>
+                        <div>
+                            <span class="text-[9px] font-black uppercase text-slate-400 block mb-0.5">ටැංකි ධාරිතාව</span>
+                            <span id="stat-tank-max" class="text-xl font-black text-amber-400">8.0 L</span>
+                        </div>
+                    </div>
+
+                    <div class="w-full bg-slate-900 light:bg-slate-200 rounded-full h-3.5 overflow-hidden p-0.5 border border-slate-800 light:border-slate-300 mt-2 shadow-inner">
+                        <div id="fuel-bar" class="bg-gradient-to-r from-brand-500 to-cyan-400 h-full rounded-full transition-all duration-700 shadow-md" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 bg-slate-950/40 light:bg-slate-100 p-3.5 rounded-2xl border border-slate-800 light:border-slate-200">
+                    <div>
+                        <label class="text-[9px] uppercase font-black text-slate-400 block mb-1">මයිලේජ් (KM/L)</label>
+                        <input type="number" id="input-mileage" onchange="updateSettings()" class="w-full bg-slate-900 light:bg-white border border-slate-700 light:border-slate-300 rounded-xl p-2.5 text-sm font-black text-amber-400 text-center focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="text-[9px] uppercase font-black text-slate-400 block mb-1">ටැංකි ධාරිතාව (L)</label>
+                        <input type="number" id="input-tank" onchange="updateSettings()" class="w-full bg-slate-900 light:bg-white border border-slate-700 light:border-slate-300 rounded-xl p-2.5 text-sm font-black text-cyan-400 text-center focus:outline-none">
+                    </div>
+                </div>
+            </div>
+
+            <!-- NEXT SERVICE TRACKER -->
+            <div class="app-glass rounded-3xl p-5 shadow-xl space-y-3 border border-slate-800 light:border-slate-200">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-xs font-black uppercase tracking-wider text-amber-400 flex items-center space-x-2">
+                        <i class="fa-solid fa-oil-can"></i>
+                        <span>ඊළඟ ඔයිල් මාරුවට (Next Service) ඉතිරි දුර</span>
+                    </h3>
+                    <button onclick="resetServiceCounter()" class="bg-amber-500/20 text-amber-400 hover:bg-amber-500 hover:text-slate-950 text-[10px] font-black px-2.5 py-1 rounded-xl transition">Reset</button>
+                </div>
+                <div class="bg-slate-950/50 light:bg-slate-100 p-3.5 rounded-2xl border border-slate-800 light:border-slate-200 flex justify-between items-center shadow-inner">
+                    <div>
+                        <span id="service-remaining-km" class="text-2xl font-black text-amber-400">1000 KM</span>
+                        <span class="text-[10px] text-slate-400 block font-bold">සීමාව: <span id="service-limit-display">1000</span> KM</span>
+                    </div>
+                    <button onclick="changeServiceLimit()" class="bg-slate-900 light:bg-white text-xs font-black px-3 py-2 rounded-xl border border-slate-700 light:border-slate-300">වෙනස් කරන්න</button>
+                </div>
+            </div>
+
+            <!-- MANUAL KM CALCULATOR -->
+            <div class="app-glass rounded-3xl p-5 shadow-xl space-y-3.5 border border-slate-800 light:border-slate-200">
+                <h3 class="text-xs font-black uppercase tracking-wider text-purple-400 flex items-center space-x-2">
+                    <i class="fa-solid fa-calculator"></i>
+                    <span>අතින් කිලෝමීටර් (Manual KM) ඇතුළත් කර තෙල් කපා හැරීම</span>
+                </h3>
+                <div class="space-y-3">
+                    <input type="number" id="manual-km-input" oninput="previewManualFuel()" placeholder="ගමන් කළ කිලෝමීටර් (KM) ඇතුළත් කරන්න" class="w-full bg-slate-900 light:bg-white border border-slate-700 light:border-slate-300 rounded-xl p-3 text-sm font-black text-purple-400 text-center focus:outline-none">
+                    
+                    <div id="manual-preview-box" class="hidden bg-slate-950/60 light:bg-slate-100 p-3 rounded-xl text-center border border-purple-500/30">
+                        <span class="text-[10px] font-black text-slate-400 uppercase block">අවශ්‍ය වන තෙල් ප්‍රමාණය:</span>
+                        <span id="manual-preview-liters" class="text-lg font-black text-purple-400">0.00 L</span>
+                    </div>
+
+                    <button onclick="deductManualTrip()" class="w-full bg-gradient-to-r from-purple-600 to-accent-500 text-white font-black py-3 rounded-2xl text-xs shadow-lg">
+                        ටැංකියෙන් තෙල් කපා හරින්න (Deduct Fuel)
+                    </button>
+                </div>
+            </div>
+
+            <!-- MONTHLY SUMMARY -->
+            <div class="app-glass rounded-3xl p-5 shadow-xl space-y-3 border border-slate-800 light:border-slate-200">
+                <h3 class="text-xs font-black uppercase tracking-wider text-cyan-400 flex items-center space-x-2">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span>මේ මස සාරාංශය</span>
+                </h3>
+                <div class="grid grid-cols-2 gap-3 text-center">
+                    <div class="bg-slate-950/40 light:bg-slate-100 p-3.5 rounded-2xl border border-slate-800 light:border-slate-200">
+                        <span class="text-[9px] font-black uppercase text-slate-400 block mb-1">මුළු වියදම</span>
+                        <span id="monthly-cost" class="text-base font-black text-amber-400">LKR 0</span>
+                    </div>
+                    <div class="bg-slate-950/40 light:bg-slate-100 p-3.5 rounded-2xl border border-slate-800 light:border-slate-200">
+                        <span class="text-[9px] font-black uppercase text-slate-400 block mb-1">ගැසූ මුළු තෙල්</span>
+                        <span id="monthly-liters" class="text-base font-black text-brand-500">0.0 L</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LIVE GPS TRIP CONTROLS -->
+            <div class="app-glass rounded-3xl p-6 shadow-2xl space-y-4 text-center border border-slate-800 light:border-slate-200">
+                <div class="w-14 h-14 bg-cyan-500/10 text-cyan-400 rounded-2xl flex items-center justify-center mx-auto text-2xl border border-cyan-500/20">
+                    <i class="fa-solid fa-satellite-dish animate-spin" style="animation-duration: 6s;"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-black text-cyan-400">සජීවී ජීපීඑස් මීටරය</h3>
+                    <p class="text-[11px] text-slate-400 font-bold mt-0.5">ගමන අරඹන විට Start Trip ඔබන්න</p>
+                </div>
+
+                <div class="bg-slate-950/50 light:bg-slate-100 p-4 rounded-2xl border border-slate-800 light:border-slate-200">
+                    <span class="text-[10px] font-black text-slate-400 block mb-1 uppercase tracking-widest">ගමන් කළ දුර (Live KM)</span>
+                    <span id="live-km-val" class="text-3xl font-black text-white light:text-slate-900 tracking-tight">0.00 KM</span>
+                    <div id="trip-status-text" class="text-xs font-black text-brand-500 mt-2">සූදානම් තත්වයේ ඇත</div>
+                </div>
+
+                <button id="start-trip-btn" onclick="startLiveTrip()" class="w-full bg-gradient-to-r from-emerald-500 to-brand-500 text-slate-950 font-black py-4 rounded-2xl text-base shadow-lg flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-play"></i>
+                    <span>ගමන ආරම්භ කරන්න (Start Trip)</span>
+                </button>
+
+                <button id="end-trip-btn" onclick="endLiveTrip()" class="hidden w-full bg-gradient-to-r from-red-500 to-rose-600 text-white font-black py-4 rounded-2xl text-base shadow-lg animate-pulse flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-stop"></i>
+                    <span>ගමන අවසන් කරන්න (End Trip)</span>
+                </button>
+            </div>
+
+        </div>
+
+        <!-- TAB 2: REFUEL INPUT -->
+        <div id="tab-refuel" class="tab-content hidden space-y-4">
+            <div class="app-glass rounded-3xl p-6 shadow-xl space-y-4 border border-slate-800 light:border-slate-200">
+                <h3 class="text-sm font-black uppercase tracking-wider flex items-center space-x-2 text-brand-500">
+                    <i class="fa-solid fa-gas-pump"></i>
+                    <span>තෙල් ගැසීමක් ඇතුළත් කරන්න</span>
+                </h3>
+                <div class="space-y-3.5">
+                    <div>
+                        <label class="block text-[10px] uppercase font-black text-slate-400 mb-1.5">පෙට්‍රල් ලීටර් ගණන</label>
+                        <input type="number" id="refuel-liters" step="0.1" placeholder="උදා: 3.5" class="w-full bg-slate-900 light:bg-slate-100 border border-slate-700 light:border-slate-300 rounded-2xl p-3.5 text-sm font-black focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] uppercase font-black text-slate-400 mb-1.5">ගෙවූ මුදල (LKR)</label>
+                        <input type="number" id="refuel-cost" placeholder="උදා: 1200" class="w-full bg-slate-900 light:bg-slate-100 border border-slate-700 light:border-slate-300 rounded-2xl p-3.5 text-sm font-black focus:outline-none">
+                    </div>
+                    <button onclick="submitRefuel()" class="w-full bg-brand-500 text-slate-950 font-black py-4 rounded-2xl text-sm shadow-lg">
+                        ටැංකියට තෙල් එකතු කරන්න
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: DOCUMENTS -->
+        <div id="tab-documents" class="tab-content hidden space-y-4">
+            <div class="app-glass rounded-3xl p-6 shadow-xl space-y-4 border border-slate-800 light:border-slate-200">
+                <h3 class="text-sm font-black uppercase tracking-wider flex items-center space-x-2 text-amber-400">
+                    <i class="fa-solid fa-file-shield"></i>
+                    <span>වාහන ලියකියවිලි කල් ඉකුත් වන දින (Expiry Dates)</span>
+                </h3>
+                <div class="space-y-4">
+                    <div class="bg-slate-950/50 light:bg-slate-100 p-4 rounded-2xl border border-slate-800 light:border-slate-200 space-y-2">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-black text-amber-400"><i class="fa-solid fa-smog mr-1.5"></i> දුම් සහතිකය (Emission Test)</span>
+                            <span id="status-emission" class="text-[10px] font-black px-2.5 py-1 rounded-xl bg-slate-800 text-slate-300">කල් ඇත</span>
+                        </div>
+                        <input type="date" id="date-emission" onchange="saveDocumentDates()" class="w-full bg-slate-900 light:bg-white border border-slate-700 light:border-slate-300 rounded-xl p-3 text-xs font-black text-cyan-400 focus:outline-none">
+                    </div>
+
+                    <div class="bg-slate-950/50 light:bg-slate-100 p-4 rounded-2xl border border-slate-800 light:border-slate-200 space-y-2">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-black text-amber-400"><i class="fa-solid fa-shield-heart mr-1.5"></i> රක්ෂණය (Insurance)</span>
+                            <span id="status-insurance" class="text-[10px] font-black px-2.5 py-1 rounded-xl bg-slate-800 text-slate-300">කල් ඇත</span>
+                        </div>
+                        <input type="date" id="date-insurance" onchange="saveDocumentDates()" class="w-full bg-slate-900 light:bg-white border border-slate-700 light:border-slate-300 rounded-xl p-3 text-xs font-black text-cyan-400 focus:outline-none">
+                    </div>
+
+                    <div class="bg-slate-950/50 light:bg-slate-100 p-4 rounded-2xl border border-slate-800 light:border-slate-200 space-y-2">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-black text-amber-400"><i class="fa-solid fa-id-card mr-1.5"></i> ආදායම් බලපත්‍රය (Revenue License)</span>
+                            <span id="status-revenue" class="text-[10px] font-black px-2.5 py-1 rounded-xl bg-slate-800 text-slate-300">කල් ඇත</span>
+                        </div>
+                        <input type="date" id="date-revenue" onchange="saveDocumentDates()" class="w-full bg-slate-900 light:bg-white border border-slate-700 light:border-slate-300 rounded-xl p-3 text-xs font-black text-cyan-400 focus:outline-none">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: HISTORY -->
+        <div id="tab-history" class="tab-content hidden space-y-4">
+            <div class="app-glass rounded-3xl p-6 shadow-xl space-y-4 border border-slate-800 light:border-slate-200">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-sm font-black uppercase tracking-wider flex items-center space-x-2 text-amber-400">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                        <span>ඉතිහාසය සහ CSV</span>
+                    </h3>
+                    <button onclick="exportToCSV()" class="bg-cyan-500 text-slate-950 text-xs font-black px-3.5 py-2.5 rounded-xl shadow-md flex items-center space-x-1.5">
+                        <i class="fa-solid fa-download"></i>
+                        <span>Export CSV</span>
+                    </button>
+                </div>
+                <div class="overflow-x-auto max-h-80 rounded-2xl border border-slate-800 light:border-slate-200">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-900/80 light:bg-slate-200 text-slate-400 text-[10px] uppercase font-black">
+                            <tr>
+                                <th class="p-3">දිනය / විස්තරය</th>
+                                <th class="p-3">ලීටර්</th>
+                                <th class="p-3">මුදල</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-tbody" class="divide-y divide-slate-800/50 light:divide-slate-200">
+                            <tr><td colspan="3" class="p-4 text-center text-slate-400 font-bold text-xs">වාර්තා හමු නොවීය.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzqkQnYlcfKlizdu19yUJYeAF8zasYRKGP3kW7x9x9V3eQwhxMtyfPb6esxm5yFfHUa/exec";
+
+        let isRegisterState = false;
+        let currentVehicle = "";
+        let currentPass = "";
+        let tankCapacity = 8;
+        let mileage = 30;
+        let currentFuel = 0.0;
+        let historyData = [];
+        let totalDrivenKM = 0;
+        let serviceLimit = 1000;
+
+        let watchId = null;
+        let screenWakeLock = null;
+        let totalTripKM = 0;
+        let lastPosition = null;
+        let pendingGPSPositions = [];
+        let alertShownForThisLowFuel = false;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            renderSavedVehicles();
+        });
+
+        // Keep the screen awake during an active trip where the browser supports Screen Wake Lock.
+        async function requestTripWakeLock() {
+            if (!('wakeLock' in navigator) || document.visibilityState !== 'visible') return;
+            try {
+                if (screenWakeLock) return;
+                screenWakeLock = await navigator.wakeLock.request('screen');
+                screenWakeLock.addEventListener('release', () => { screenWakeLock = null; });
+            } catch (err) {
+                console.warn('Screen Wake Lock unavailable:', err);
+            }
+        }
+
+        async function releaseTripWakeLock() {
+            if (screenWakeLock) {
+                try { await screenWakeLock.release(); } catch (err) {}
+                screenWakeLock = null;
+            }
+        }
+
+        document.addEventListener('visibilitychange', () => {
+            if (watchId !== null && document.visibilityState === 'visible') requestTripWakeLock();
+        });
+
+        window.addEventListener('online', () => {
+            document.getElementById('sync-status').innerText = "● Online & Synced";
+            document.getElementById('sync-status').className = "text-[9px] text-emerald-400 font-black uppercase tracking-widest";
+            syncDataToCloud();
+        });
+
+        window.addEventListener('offline', () => {
+            document.getElementById('sync-status').innerText = "● Offline Mode";
+            document.getElementById('sync-status').className = "text-[9px] text-amber-400 font-black uppercase tracking-widest";
+        });
+
+        function getSavedAccounts() {
+            try {
+                return JSON.parse(localStorage.getItem('smart_meeter_saved_vehicles')) || {};
+            } catch(e) {
+                return {};
+            }
+        }
+
+        function saveAccountCredential(vehNo, pass) {
+            let accounts = getSavedAccounts();
+            accounts[vehNo] = pass;
+            localStorage.setItem('smart_meeter_saved_vehicles', JSON.stringify(accounts));
+            renderSavedVehicles();
+        }
+
+        function renderSavedVehicles() {
+            let accounts = getSavedAccounts();
+            let keys = Object.keys(accounts);
+            let container = document.getElementById('saved-vehicles-container');
+            let list = document.getElementById('saved-vehicles-list');
+
+            if(keys.length > 0) {
+                container.classList.remove('hidden');
+                list.innerHTML = keys.map(veh => `
+                    <button type="button" onclick="quickLogin('${veh}', '${accounts[veh]}')" class="bg-slate-900/80 hover:bg-brand-500 hover:text-slate-950 text-brand-400 border border-brand-500/30 py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-between shadow-md">
+                        <span><i class="fa-solid fa-taxi mr-1.5"></i> ${veh}</span>
+                        <i class="fa-solid fa-arrow-right-to-bracket text-[10px]"></i>
+                    </button>
+                `).join('');
+            } else {
+                container.classList.add('hidden');
+            }
+        }
+
+        function quickLogin(veh, pass) {
+            document.getElementById('auth-vehicle').value = veh;
+            document.getElementById('auth-pass').value = pass;
+            handleAuth();
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const icon = document.getElementById('theme-icon');
+            html.classList.toggle('dark');
+            html.classList.toggle('light');
+            icon.className = html.classList.contains('dark') ? "fa-solid fa-sun text-sm" : "fa-solid fa-moon text-sm";
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+
+            ['home', 'refuel', 'documents', 'history'].forEach(name => {
+                const btn = document.getElementById(`menu-${name}`);
+                if(name === tabName) {
+                    btn.className = "py-2.5 rounded-xl text-xs font-black bg-brand-500 text-slate-950 transition-all flex flex-col items-center justify-center space-y-1 shadow-lg scale-105";
+                } else {
+                    btn.className = "py-2.5 rounded-xl text-xs font-black text-slate-400 hover:text-slate-100 transition-all flex flex-col items-center justify-center space-y-1";
+                }
+            });
+        }
+
+        function toggleMode() {
+            isRegisterState = !isRegisterState;
+            document.getElementById('auth-title').innerText = isRegisterState ? 'නව වාහන ගිණුමක් තනන්න' : 'වාහන ලොගින් වීම';
+            document.getElementById('auth-desc').innerText = isRegisterState ? 'වාහන අංකය සහ මුරපදයක් සාදාගන්න' : 'වාහන අංකය සහ මුරපදය ඇතුළත් කරන්න';
+            document.getElementById('auth-btn-text').innerText = isRegisterState ? 'ලියාපදිංචි වන්න' : 'ලොග් වන්න';
+            document.getElementById('toggle-btn').innerText = isRegisterState ? 'දැනටමත් ගිණුමක් තිබේද? ලොග් වන්න' : 'ගිණුමක් නැද්ද? ලියාපදිංචි වන්න';
+            document.getElementById('auth-msg').innerText = "";
+        }
+
+        async function handleAuth() {
+            const vehicle = document.getElementById('auth-vehicle').value.trim().toUpperCase();
+            const pass = document.getElementById('auth-pass').value.trim();
+            const msgEl = document.getElementById('auth-msg');
+            const btnText = document.getElementById('auth-btn-text');
+            const spinner = document.getElementById('auth-spinner');
+            const authBtn = document.getElementById('auth-btn');
+
+            if(!vehicle || !pass) {
+                msgEl.innerText = "කරුණාකර සියලුම විස්තර පුරවන්න!";
+                return;
+            }
+
+            msgEl.innerText = "";
+            btnText.innerText = "පරීක්ෂා කරමින් පවතී...";
+            spinner.classList.remove('hidden');
+            authBtn.disabled = true;
+
+            const action = isRegisterState ? "register" : "login";
+
+            try {
+                const res = await fetch(SCRIPT_URL, {
+                    method: "POST",
+                    body: JSON.stringify({ action: action, phone: vehicle, password: pass })
+                });
+                const data = await res.json();
+                
+                spinner.classList.add('hidden');
+                authBtn.disabled = false;
+                btnText.innerText = isRegisterState ? 'ලියාපදිංචි වන්න' : 'ලොග් වන්න';
+
+                if(data.status === "success") {
+                    saveAccountCredential(vehicle, pass);
+                    if(isRegisterState) {
+                        alert('වාහන ගිණුම සාර්ථකයි! දැන් ලොග් වන්න.');
+                        toggleMode();
+                    } else {
+                        currentVehicle = vehicle;
+                        currentPass = pass;
+                        document.getElementById('display-vehicle').innerText = `🛺 ${vehicle}`;
+                        document.getElementById('auth-section').classList.add('hidden');
+                        document.getElementById('dashboard-section').classList.remove('hidden');
+                        
+                        if(data.data && data.data !== "") {
+                            parseAndLoadCloudPayload(data.data);
+                        } else {
+                            loadOfflineData();
+                        }
+                        checkDocumentExpiryAlerts();
+                    }
+                } else {
+                    msgEl.innerText = data.message || "ප්‍රවේශ වීම අසාර්ථකයි!";
+                }
+            } catch(e) {
+                spinner.classList.add('hidden');
+                authBtn.disabled = false;
+                btnText.innerText = isRegisterState ? 'ලියාපදිංචි වන්න' : 'ලොග් වන්න';
+
+                if(!isRegisterState && vehicle) {
+                    saveAccountCredential(vehicle, pass);
+                    currentVehicle = vehicle;
+                    currentPass = pass;
+                    document.getElementById('display-vehicle').innerText = `🛺 ${vehicle} (Offline)`;
+                    document.getElementById('auth-section').classList.add('hidden');
+                    document.getElementById('dashboard-section').classList.remove('hidden');
+                    loadOfflineData();
+                    checkDocumentExpiryAlerts();
+                } else {
+                    msgEl.innerText = "සම්බන්ධ වීමේ දෝෂයක් සිදු විය (අන්තර්ජාලය පරීක්ෂා කරන්න).";
+                }
+            }
+        }
+
+        function logout() {
+            if (watchId !== null && navigator.geolocation) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+            currentVehicle = "";
+            currentPass = "";
+            document.getElementById('dashboard-section').classList.add('hidden');
+            document.getElementById('auth-section').classList.remove('hidden');
+            document.getElementById('auth-vehicle').value = '';
+            document.getElementById('auth-pass').value = '';
+            renderSavedVehicles();
+        }
+
+        function updateSettings() {
+            mileage = Math.max(1, parseFloat(document.getElementById('input-mileage').value) || 30);
+            tankCapacity = Math.max(1, parseFloat(document.getElementById('input-tank').value) || 8);
+            
+            if(currentVehicle) {
+                localStorage.setItem(`mileage_${currentVehicle}`, mileage);
+                localStorage.setItem(`tank_${currentVehicle}`, tankCapacity);
+            }
+            saveAndSync();
+            updateUI();
+        }
+
+        function saveAndSync() {
+            if(!currentVehicle) return;
+            
+            const payload = {
+                mileage: mileage,
+                tankCapacity: tankCapacity,
+                currentFuel: currentFuel,
+                totalDrivenKM: totalDrivenKM,
+                serviceLimit: serviceLimit,
+                historyData: historyData,
+                emission: document.getElementById('date-emission').value,
+                insurance: document.getElementById('date-insurance').value,
+                revenue: document.getElementById('date-revenue').value
+            };
+
+            localStorage.setItem(`app_data_${currentVehicle}`, JSON.stringify(payload));
+            syncDataToCloud();
+        }
+
+        async function syncDataToCloud() {
+            if(!currentVehicle || !navigator.onLine) return;
+
+            const payloadStr = localStorage.getItem(`app_data_${currentVehicle}`);
+            if(!payloadStr) return;
+
+            try {
+                await fetch(SCRIPT_URL, {
+                    method: "POST",
+                    body: JSON.stringify({
+                        action: "save",
+                        phone: currentVehicle,
+                        password: currentPass,
+                        payload: payloadStr
+                    })
+                });
+            } catch(err) {
+                console.log("Cloud sync delayed.");
+            }
+        }
+
+        function loadOfflineData() {
+            if(!currentVehicle) return;
+
+            const savedPayload = localStorage.getItem(`app_data_${currentVehicle}`);
+            if(savedPayload) {
+                parseAndLoadCloudPayload(savedPayload);
+            } else {
+                mileage = 30;
+                tankCapacity = 8;
+                currentFuel = 0.0;
+                totalDrivenKM = 0;
+                serviceLimit = 1000;
+                historyData = [];
+                updateUI();
+            }
+        }
+
+        function parseAndLoadCloudPayload(jsonStr) {
+            try {
+                const data = JSON.parse(jsonStr);
+                mileage = data.mileage || 30;
+                tankCapacity = data.tankCapacity || 8;
+                currentFuel = data.currentFuel || 0.0;
+                totalDrivenKM = data.totalDrivenKM || 0;
+                serviceLimit = data.serviceLimit || 1000;
+                historyData = data.historyData || [];
+
+                if(data.emission) document.getElementById('date-emission').value = data.emission;
+                if(data.insurance) document.getElementById('date-insurance').value = data.insurance;
+                if(data.revenue) document.getElementById('date-revenue').value = data.revenue;
+
+                localStorage.setItem(`app_data_${currentVehicle}`, jsonStr);
+                updateUI();
+            } catch(e) {
+                console.error("Payload parse error");
+            }
+        }
+
+        function saveDocumentDates() {
+            saveAndSync();
+            checkDocumentExpiryAlerts();
+        }
+
+        function checkDocumentExpiryAlerts() {
+            if(!currentVehicle) return;
+            const today = new Date();
+            today.setHours(0,0,0,0);
+
+            const docs = [
+                { name: "දුම් සහතිකය (Emission Test)", id: 'date-emission', statusId: 'status-emission' },
+                { name: "රක්ෂණය (Insurance)", id: 'date-insurance', statusId: 'status-insurance' },
+                { name: "ආදායම් බලපත්‍රය (Revenue License)", id: 'date-revenue', statusId: 'status-revenue' }
+            ];
+
+            let alertMessages = [];
+
+            docs.forEach(doc => {
+                const dateVal = document.getElementById(doc.id).value;
+                const statusEl = document.getElementById(doc.statusId);
+                if(!dateVal) return;
+
+                const expDate = new Date(dateVal);
+                expDate.setHours(0,0,0,0);
+
+                const diffTime = expDate - today;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                if(diffDays < 0) {
+                    statusEl.innerText = `කල් ඉකුත් වී ඇත! (${Math.abs(diffDays)} දින)`;
+                    statusEl.className = "text-[10px] font-black px-2.5 py-1 rounded-xl bg-red-500/20 text-red-500 animate-pulse";
+                    alertMessages.push(`${doc.name} කල් ඉකුත් වී දින ${Math.abs(diffDays)}ක් වේ!`);
+                } else if(diffDays <= 2) {
+                    statusEl.innerText = `තව දින ${diffDays} යි!`;
+                    statusEl.className = "text-[10px] font-black px-2.5 py-1 rounded-xl bg-amber-500/20 text-amber-400 animate-bounce";
+                    alertMessages.push(`${doc.name} කල් ඉකුත් වීමට ඇත්තේ තව දින ${diffDays} කි!`);
+                } else {
+                    statusEl.innerText = `තව දින ${diffDays} යි`;
+                    statusEl.className = "text-[10px] font-black px-2.5 py-1 rounded-xl bg-emerald-500/20 text-emerald-400";
+                }
+            });
+
+            if(alertMessages.length > 0) {
+                document.getElementById('warning-modal-msg').innerHTML = alertMessages.join('<br>');
+                document.getElementById('warning-modal').classList.remove('hidden');
+            }
+        }
+
+        function closeWarningModal() {
+            document.getElementById('warning-modal').classList.add('hidden');
+        }
+
+        function resetServiceCounter() {
+            if(confirm('ඔබ ඔයිල් මාරු කිරීම සිදුකළ බවට Reset කිරීමට අවශ්‍යද?')) {
+                totalDrivenKM = 0;
+                saveAndSync();
+                updateUI();
+                alert('Next Service කවුන්ටරය නැවත 0 සිට ඇරඹුණි!');
+            }
+        }
+
+        function changeServiceLimit() {
+            const newLimit = prompt('ඔයිල් මාරු කළ යුතු කිලෝමීටර් සීමාව ඇතුළත් කරන්න (උදා: 1000 හෝ 2000):', serviceLimit);
+            if(newLimit && !isNaN(newLimit)) {
+                serviceLimit = parseFloat(newLimit);
+                saveAndSync();
+                updateUI();
+            }
+        }
+
+        function previewManualFuel() {
+            const manualKM = parseFloat(document.getElementById('manual-km-input').value);
+            const previewBox = document.getElementById('manual-preview-box');
+            const previewLiters = document.getElementById('manual-preview-liters');
+
+            if(!manualKM || manualKM <= 0) {
+                previewBox.classList.add('hidden');
+                return;
+            }
+            const fuelNeeded = manualKM / mileage;
+            previewLiters.innerText = `${fuelNeeded.toFixed(2)} L (ප්‍රමාණය)`;
+            previewBox.classList.remove('hidden');
+        }
+
+        function deductManualTrip() {
+            const manualKM = parseFloat(document.getElementById('manual-km-input').value);
+            if(!manualKM || manualKM <= 0) {
+                alert('කරුණාකර නිවැරදි කිලෝමීටර් (KM) ප්‍රමාණයක් ඇතුළත් කරන්න!');
+                return;
+            }
+
+            const fuelNeeded = manualKM / mileage;
+            currentFuel = Math.max(0, currentFuel - fuelNeeded);
+            totalDrivenKM += manualKM;
+            const dateStr = new Date().toLocaleString();
+            const logDesc = `${dateStr} (අතින් දුර: ${manualKM.toFixed(1)}KM)`;
+
+            historyData.push({ date: logDesc, liters: -parseFloat(fuelNeeded.toFixed(2)), cost: 0, currentFuel: currentFuel });
+            saveAndSync();
+            updateUI();
+
+            alert(`සාර්ථකයි! ගමන් කළ දුර: ${manualKM.toFixed(1)} KM. අඩු වූ තෙල්: ${fuelNeeded.toFixed(2)} L.`);
+            document.getElementById('manual-km-input').value = '';
+            document.getElementById('manual-preview-box').classList.add('hidden');
+        }
+
+        function submitRefuel() {
+            const liters = parseFloat(document.getElementById('refuel-liters').value);
+            const cost = parseFloat(document.getElementById('refuel-cost').value);
+            if(!liters || !cost) { alert('කරුණාකර ලීටර් සහ මුදල නිවැරදිව ඇතුළත් කරන්න'); return; }
+
+            currentFuel = Math.min(tankCapacity, currentFuel + liters);
+            if(currentFuel > 1.0) alertShownForThisLowFuel = false;
+
+            const dateStr = new Date().toLocaleString();
+            historyData.push({ date: dateStr, liters: liters, cost: cost, currentFuel: currentFuel });
+            saveAndSync();
+            updateUI();
+
+            document.getElementById('refuel-liters').value = '';
+            document.getElementById('refuel-cost').value = '';
+            alert('තෙල් ගැසීම සාර්ථකව එකතු විය!');
+            switchTab('home');
+        }
+
+        function exportToCSV() {
+            if(historyData.length === 0) { alert('ඩේටා නොමැත!'); return; }
+            let csvContent = "data:text/csv;charset=utf-8,Date/Details,Liters,Cost(LKR),CurrentFuel\n";
+            historyData.forEach(row => {
+                csvContent += `"${row.date}",${row.liters},${row.cost},${row.currentFuel}\n`;
+            });
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `smart_meeter_history_${currentVehicle}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * (Math.PI / 180);
+            const dLon = (lon2 - lon1) * (Math.PI / 180);
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                      Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+                      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+        }
+
+        async function startLiveTrip() {
+            if (!navigator.geolocation) {
+                alert("මෙම browser එක GPS සඳහා සහය නොදක්වයි. iPhone Safari හෝ Android Chrome යාවත්කාලීන කරන්න.");
+                return;
+            }
+            if (!window.isSecureContext && location.protocol !== "file:") {
+                alert("GPS භාවිතයට HTTPS website එකක් අවශ්‍යයි. Website එක HTTPS හරහා විවෘත කරන්න.");
+                return;
+            }
+            if (watchId !== null) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+
+            await requestTripWakeLock();
+            totalTripKM = 0;
+            lastPosition = null;
+            pendingGPSPositions = [];
+            alertShownForThisLowFuel = false;
+            document.getElementById('live-km-val').innerText = '0.00 KM';
+            document.getElementById('trip-status-text').innerText = 'GPS ස්ථානය ලබාගනිමින්...';
+            document.getElementById('start-trip-btn').classList.add('hidden');
+            document.getElementById('end-trip-btn').classList.remove('hidden');
+
+            watchId = navigator.geolocation.watchPosition(
+                (position) => {
+                    const c = position.coords;
+                    const current = {
+                        lat: c.latitude,
+                        lng: c.longitude,
+                        accuracy: Number.isFinite(c.accuracy) ? c.accuracy : 9999,
+                        speed: Number.isFinite(c.speed) ? c.speed : null,
+                        time: position.timestamp || Date.now()
+                    };
+
+                    // GPS accuracy දුර්වල නම් ඒ reading එකෙන් දුර එකතු නොකරන්න.
+                    // Phone GPS එකෙන් ලැබෙන ± accuracy අගය 25m ඉක්මවූ විට noise වැඩියි.
+                    if (current.accuracy > 25) {
+                        document.getElementById('trip-status-text').innerText =
+                            `GPS සංඥාව දුර්වලයි (±${Math.round(current.accuracy)}m). එළිමහන් ස්ථානයක සිටින්න.`;
+                        return;
+                    }
+
+                    document.getElementById('trip-status-text').innerText =
+                        `GPS සම්බන්ධයි (±${Math.round(current.accuracy)}m). ගමන ගණනය කරමින්...`;
+
+                    if (!lastPosition) {
+                        lastPosition = current;
+                        return;
+                    }
+
+                    const distKM = calculateDistance(lastPosition.lat, lastPosition.lng, current.lat, current.lng);
+                    const distM = distKM * 1000;
+                    const elapsedSec = Math.max(1, (current.time - lastPosition.time) / 1000);
+
+                    // අසාමාන්‍ය GPS jump එකක් හෝ භෞතිකව කළ නොහැකි වේගයක් දුරට එකතු නොකරන්න.
+                    const maxPlausibleM = Math.max(35, elapsedSec * 45);
+                    if (!Number.isFinite(distM) || distM > maxPlausibleM) {
+                        pendingGPSPositions = [];
+                        lastPosition = current;
+                        document.getElementById('trip-status-text').innerText = 'GPS ස්ථානය නැවත තහවුරු කරමින්...';
+                        return;
+                    }
+
+                    // Stationary GPS drift suppress කරන්න 12m ට අඩු වෙනස්වීම්
+                    // මත දුර එකතු නොකරයි. Accuracy දුර්වල වන විට threshold වැඩි වේ.
+                    const movementThresholdM = Math.max(
+                        12,
+                        Math.min(18, (lastPosition.accuracy + current.accuracy) * 0.40)
+                    );
+
+                    // Device speed අඩු බව වාර්තා කරන්නේ නම්, කුඩා GPS drift එකක් ignore කරන්න.
+                    if (current.speed !== null && current.speed < 0.6 && distM < 15) {
+                        pendingGPSPositions = [];
+                        return;
+                    }
+
+                    if (distM < movementThresholdM) {
+                        // Anchor එක වෙනස් නොකරන්න; එවිට සැබෑ හෙමින් ගමනේ දුර එකතු වී තහවුරු වේ.
+                        pendingGPSPositions.push(current);
+                        if (pendingGPSPositions.length > 4) pendingGPSPositions.shift();
+                        return;
+                    }
+
+                    // Anchor එකෙන් threshold ඉක්මවා ගිය පළමු reading එක පමණක් ප්‍රමාණවත් නොවේ.
+                    // ඊළඟ reading එකත් එම ප්‍රදේශයේ සිට anchor එකෙන් දුරස්ව තිබේ නම් movement තහවුරු වේ.
+                    const previousCandidate = pendingGPSPositions.length
+                        ? pendingGPSPositions[pendingGPSPositions.length - 1]
+                        : null;
+
+                    if (!previousCandidate) {
+                        pendingGPSPositions.push(current);
+                        if (pendingGPSPositions.length > 4) pendingGPSPositions.shift();
+                        return;
+                    }
+
+                    const previousCandidateDistM = calculateDistance(
+                        lastPosition.lat, lastPosition.lng,
+                        previousCandidate.lat, previousCandidate.lng
+                    ) * 1000;
+                    const candidateToCurrentM = calculateDistance(
+                        previousCandidate.lat, previousCandidate.lng,
+                        current.lat, current.lng
+                    ) * 1000;
+
+                    const movementConfirmed =
+                        previousCandidateDistM >= movementThresholdM * 0.90 &&
+                        distM >= previousCandidateDistM * 0.85 &&
+                        candidateToCurrentM <= Math.max(8, movementThresholdM * 0.65);
+
+                    if (!movementConfirmed) {
+                        pendingGPSPositions.push(current);
+                        if (pendingGPSPositions.length > 4) pendingGPSPositions.shift();
+                        return;
+                    }
+
+                    // සනාථ කළ net displacement පමණක් එකතු කිරීමෙන් stationary drift/path zig-zag අඩු වේ.
+                    totalTripKM += distKM;
+                    lastPosition = current;
+                    pendingGPSPositions = [];
+                    document.getElementById('live-km-val').innerText = `${totalTripKM.toFixed(2)} KM`;
+
+                    const fuelNeeded = mileage > 0 ? totalTripKM / mileage : 0;
+                    const tempFuel = Math.max(0, currentFuel - fuelNeeded);
+                    if (tempFuel <= 1.0 && !alertShownForThisLowFuel) showLowFuelModal(tempFuel);
+                },
+                (error) => {
+                    let message = 'GPS දෝෂයක් ඇතිවිය.';
+                    if (error.code === 1) message = 'Location අවසරය ලබා දෙන්න. Browser settings පරීක්ෂා කරන්න.';
+                    else if (error.code === 2) message = 'GPS ස්ථානය ලබාගත නොහැක. Phone Location සක්‍රිය කරන්න.';
+                    else if (error.code === 3) message = 'GPS ප්‍රතිචාරය ප්‍රමාදයි. විවෘත ස්ථානයක සිට නැවත උත්සාහ කරන්න.';
+                    document.getElementById('trip-status-text').innerText = message;
+                    console.warn('SMART MEETER geolocation error:', error.code, error.message);
+                },
+                { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 }
+            );
+        }
+
+        async function endLiveTrip() {
+            if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+            await releaseTripWakeLock();
+
+            document.getElementById('start-trip-btn').classList.remove('hidden');
+            document.getElementById('end-trip-btn').classList.add('hidden');
+
+            if (totalTripKM < 0.1) {
+                alert("ගමන් කළ දුර ඉතාම අඩුය!");
+                document.getElementById('trip-status-text').innerText = "සූදානම් තත්වයේ ඇත";
+                document.getElementById('live-km-val').innerText = `0.00 KM`;
+                return;
+            }
+
+            const fuelNeeded = totalTripKM / mileage;
+            currentFuel = Math.max(0, currentFuel - fuelNeeded);
+            totalDrivenKM += totalTripKM;
+            const dateStr = new Date().toLocaleString();
+            const logDesc = `${dateStr} (ජීපීඑස් ගමන: ${totalTripKM.toFixed(1)}KM)`;
+
+            historyData.push({ date: logDesc, liters: -parseFloat(fuelNeeded.toFixed(2)), cost: 0, currentFuel: currentFuel });
+            saveAndSync();
+            updateUI();
+
+            alert(`ගමන සාර්ථකයි! ගිය දුර: ${totalTripKM.toFixed(1)} KM. අඩු වූ තෙල්: ${fuelNeeded.toFixed(2)} L.`);
+            totalTripKM = 0;
+            document.getElementById('live-km-val').innerText = `0.00 KM`;
+            document.getElementById('trip-status-text').innerText = "සූදානම් තත්වයේ ඇත";
+        }
+
+        function showLowFuelModal(liters) {
+            alertShownForThisLowFuel = true;
+            document.getElementById('low-fuel-msg').innerText = `ටැංකියේ ඉතිරිව ඇත්තේ ලීටර් ${liters.toFixed(2)} ක් පමණි! කරුණාකර තෙල් ගහගන්න.`;
+            document.getElementById('low-fuel-modal').classList.remove('hidden');
+        }
+
+        function closeLowFuelModal() {
+            document.getElementById('low-fuel-modal').classList.add('hidden');
+        }
+
+        function updateUI() {
+            document.getElementById('input-mileage').value = mileage;
+            document.getElementById('input-tank').value = tankCapacity;
+
+            const fuelStatEl = document.getElementById('stat-fuel');
+            fuelStatEl.innerText = currentFuel.toFixed(1);
+            document.getElementById('stat-tank-max').innerText = `${tankCapacity.toFixed(1)} L`;
+
+            if (currentFuel <= 1.0) {
+                fuelStatEl.className = "text-5xl font-black text-red-500 animate-pulse tracking-tight";
+                if (!alertShownForThisLowFuel && currentFuel > 0) showLowFuelModal(currentFuel);
+            } else {
+                fuelStatEl.className = "text-5xl font-black text-brand-500 tracking-tight";
+            }
+
+            const range = currentFuel * mileage;
+            document.getElementById('stat-range').innerText = `${range.toFixed(0)} KM`;
+            
+            const pct = Math.min(100, Math.max(0, (currentFuel / tankCapacity) * 100));
+            document.getElementById('fuel-bar').style.width = `${pct}%`;
+
+            let remainingServiceKM = Math.max(0, serviceLimit - totalDrivenKM);
+            document.getElementById('service-remaining-km').innerText = `${remainingServiceKM.toFixed(0)} KM`;
+            document.getElementById('service-limit-display').innerText = serviceLimit;
+
+            let mCost = 0;
+            let mLiters = 0;
+            historyData.forEach(item => {
+                if(item.liters > 0) {
+                    mCost += parseFloat(item.cost) || 0;
+                    mLiters += parseFloat(item.liters) || 0;
+                }
+            });
+            document.getElementById('monthly-cost').innerText = `LKR ${mCost.toLocaleString()}`;
+            document.getElementById('monthly-liters').innerText = `${mLiters.toFixed(1)} L`;
+
+            const tbody = document.getElementById('history-tbody');
+            if(historyData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-slate-400 font-bold text-xs">වාර්තා හමු නොවීය.</td></tr>`;
+            } else {
+                tbody.innerHTML = historyData.slice().reverse().map(item => `
+                    <tr class="hover:bg-slate-900/40 light:hover:bg-slate-100 transition">
+                        <td class="p-3 font-bold text-xs">${item.date}</td>
+                        <td class="p-3 ${item.liters > 0 ? 'text-brand-500' : 'text-red-400'} font-black text-xs">${item.liters > 0 ? '+' : ''}${item.liters} L</td>
+                        <td class="p-3 font-bold text-xs">${item.cost > 0 ? 'LKR ' + item.cost : '-'}</td>
+                    </tr>
+                `).join('');
+            }
+        }
+    </script>
+
+    <script>
+    // Enable offline caching when hosted on HTTPS (or localhost).
+    if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(err => console.warn('Offline setup could not start:', err));
+      });
+    }
+    </script>
+</body>
+</html>

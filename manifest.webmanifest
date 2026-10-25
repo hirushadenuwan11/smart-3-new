@@ -1,0 +1,11 @@
+{
+  "name": "SMART MEETER",
+  "short_name": "SMART MEETER",
+  "description": "Offline-capable three-wheeler fuel and distance meter",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#00BB9E",
+  "icons": [{"src":"./icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
+}
